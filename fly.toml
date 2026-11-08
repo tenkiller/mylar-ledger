@@ -1,5 +1,5 @@
 app = "mylar-ledger"
-primary_region = "ord"
+primary_region = "dfw"
 # The server handles SIGTERM (graceful close). Give it a little longer than its 5s grace.
 kill_signal = "SIGTERM"
 kill_timeout = 10
