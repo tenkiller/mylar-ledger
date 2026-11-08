@@ -22,7 +22,8 @@ self.addEventListener('fetch', (event) => {
   const req = event.request
   const url = new URL(req.url)
   if (req.method !== 'GET' || url.origin !== self.location.origin) return
-  if (url.pathname.startsWith('/sync') || url.pathname === '/healthz') return
+  if (url.pathname.startsWith('/sync') || url.pathname.startsWith('/auth')) return
+  if (url.pathname === '/healthz') return
   event.respondWith(handle(event))
 })
 

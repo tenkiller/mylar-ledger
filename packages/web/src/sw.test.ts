@@ -161,6 +161,7 @@ describe('service worker fetch', () => {
   it('does not intercept sync calls, non-GETs or other origins', async () => {
     const h = load()
     expect(await h.request('/sync/pull?since=0')).toBeUndefined()
+    expect(await h.request('/auth/session')).toBeUndefined()
     expect(await h.request('/healthz')).toBeUndefined()
     expect(await h.request('/x', 'no-cors', 'POST')).toBeUndefined()
   })

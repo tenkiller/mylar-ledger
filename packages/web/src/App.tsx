@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks'
+import { login, logout, type LoginResult } from './auth.ts'
 import { db } from './instance.ts'
 import { addSeries, deleteSeries } from './store.ts'
 import { SyncAuthError, SyncRejectedError, syncOnce } from './sync.ts'
@@ -7,6 +8,19 @@ import { useLiveQuery } from './useLiveQuery.ts'
 type Status = 'idle' | 'syncing' | 'offline' | 'auth' | 'error'
 
 const SYNC_INTERVAL_MS = 120_000
+
+function describeLoginFailure(result: Extract<LoginResult, { ok: false }>): string {
+  switch (result.reason) {
+    case 'invalid':
+      return 'Wrong password.'
+    case 'rate_limited':
+      return `Too many attempts. Try again in ${Math.ceil((result.retryAfterSeconds ?? 60) / 60)} min.`
+    case 'busy':
+      return 'Server busy. Try again in a moment.'
+    case 'error':
+      return 'Could not sign in.'
+  }
+}
 
 function describeError(err: unknown): string {
   if (err instanceof SyncRejectedError && err.code === 'timestamp_in_future') {
@@ -22,6 +36,8 @@ export function App() {
   const pending = useLiveQuery(() => db.outbox.count())
   const [status, setStatus] = useState<Status>('idle')
   const [errorMessage, setErrorMessage] = useState('')
+  const [password, setPassword] = useState('')
+  const [loginError, setLoginError] = useState('')
   const [title, setTitle] = useState('')
   const [publisher, setPublisher] = useState('')
 
@@ -57,6 +73,29 @@ export function App() {
     }
   }, [])
 
+  const onLogin = async (e: Event): Promise<void> => {
+    e.preventDefault()
+    try {
+      const result = await login(password)
+      if (!result.ok) {
+        setLoginError(describeLoginFailure(result))
+        return
+      }
+    } catch {
+      setLoginError('Could not reach the server.')
+      return
+    }
+    setPassword('')
+    setLoginError('')
+    // Queued offline writes were kept while signed out; send them now.
+    void sync()
+  }
+
+  const onLogout = async (): Promise<void> => {
+    await logout().catch(() => undefined)
+    setStatus('auth')
+  }
+
   const onSubmit = async (e: Event): Promise<void> => {
     e.preventDefault()
     const t = title.trim()
@@ -80,6 +119,26 @@ export function App() {
         {status === 'error' && `${errorMessage} `}
         {pending ? `${pending} pending` : ''}
       </p>
+      {status === 'auth' && (
+        <form onSubmit={(e) => void onLogin(e)}>
+          <input
+            type="password"
+            autocomplete="current-password"
+            placeholder="Password"
+            value={password}
+            onInput={(e) => {
+              setPassword(e.currentTarget.value)
+            }}
+            required
+          />
+          <button type="submit">Sign in</button> {loginError}
+        </form>
+      )}
+      {status !== 'auth' && (
+        <button type="button" onClick={() => void onLogout()}>
+          Sign out
+        </button>
+      )}
       <form onSubmit={(e) => void onSubmit(e)}>
         <input
           placeholder="Series title"

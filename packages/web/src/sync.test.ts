@@ -19,7 +19,7 @@ const fetchFn = (input: string, init?: RequestInit): Promise<Response> => {
 const newDevice = () => new MylarDb(`test-${++n}`)
 
 beforeEach(() => {
-  server = createApp(openDb(':memory:'))
+  server = createApp(openDb(':memory:'), { auth: { disabled: true } })
   online = true
 })
 
@@ -131,7 +131,7 @@ describe('client sync', () => {
     await addSeries(a, { title: 'Monstress' })
     await syncOnce(a, fetchFn)
 
-    server = createApp(openDb(':memory:'))
+    server = createApp(openDb(':memory:'), { auth: { disabled: true } })
     await syncOnce(a, fetchFn)
 
     const b = newDevice()
@@ -205,7 +205,7 @@ describe('client sync', () => {
   })
 
   it('surfaces a device clock that is ahead of the server', async () => {
-    server = createApp(openDb(':memory:'), { now: () => 0 })
+    server = createApp(openDb(':memory:'), { auth: { disabled: true }, now: () => 0 })
     const a = newDevice()
     await addSeries(a, { title: 'Future' }, 60 * 60_000)
     const err = await syncOnce(a, fetchFn).catch((e: unknown) => e)

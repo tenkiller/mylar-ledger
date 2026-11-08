@@ -32,7 +32,7 @@ export interface SyncResult {
   pulled: number
 }
 
-type FetchFn = (input: string, init?: RequestInit) => Promise<Response>
+export type FetchFn = (input: string, init?: RequestInit) => Promise<Response>
 
 /** Bounds how long one call keeps chasing writes that land mid-sync. */
 const MAX_ROUNDS = 5
