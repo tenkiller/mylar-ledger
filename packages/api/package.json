@@ -1,0 +1,21 @@
+{
+  "name": "@mylar/api",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/server.ts",
+    "start": "node src/server.ts",
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.6",
+    "@mylar/shared": "*",
+    "hono": "^4.13.17"
+  },
+  "exports": {
+    "./app": "./src/app.ts",
+    "./db": "./src/db.ts"
+  }
+}
