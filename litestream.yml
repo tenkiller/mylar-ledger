@@ -1,0 +1,17 @@
+# Continuous replication of the SQLite database to Tigris (S3-compatible).
+# Credentials come from AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY, set by `fly storage create`.
+# The endpoint is set here, not via AWS_ENDPOINT_URL_S3, so Litestream auto-detects Tigris and
+# applies its required settings (strong consistency, payload signing).
+dbs:
+  - path: ${DB_PATH}
+    replica:
+      type: s3
+      bucket: ${BUCKET_NAME}
+      path: mylar.sqlite
+      endpoint: fly.storage.tigris.dev
+      region: auto
+
+# Daily full snapshots, kept 30 days: the point-in-time window for restores.
+snapshot:
+  interval: 24h
+  retention: 720h
