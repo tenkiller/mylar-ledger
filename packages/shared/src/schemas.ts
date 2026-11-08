@@ -138,3 +138,10 @@ export const pullResponseSchema = z.object({
   serverSeq: z.number().int().nonnegative(),
 })
 export type PullResponse = z.infer<typeof pullResponseSchema>
+
+export const MAX_PASSWORD_LENGTH = 256
+
+export const loginRequestSchema = z.object({
+  password: z.string().min(1).max(MAX_PASSWORD_LENGTH),
+})
+export type LoginRequest = z.infer<typeof loginRequestSchema>
