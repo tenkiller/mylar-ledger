@@ -49,7 +49,8 @@ const MIGRATIONS: readonly string[] = [
 
 export function openDb(path: string): DatabaseSync {
   const db = new DatabaseSync(path)
-  db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;')
+  // busy_timeout: Litestream's checkpoints briefly lock the WAL, so writers must wait, not fail.
+  db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;')
   migrate(db)
   return db
 }
