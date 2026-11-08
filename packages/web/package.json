@@ -1,0 +1,23 @@
+{
+  "name": "@mylar/web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "dependencies": {
+    "dexie": "^4.4.7",
+    "preact": "^11.2.0",
+    "@mylar/shared": "*"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
+    "fake-indexeddb": "^6.2.8",
+    "vite": "^8.3.6",
+    "@mylar/api": "*"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  }
+}
