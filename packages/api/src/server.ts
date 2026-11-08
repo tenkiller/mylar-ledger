@@ -1,7 +1,9 @@
 import { createServer } from 'node:http'
 import { getRequestListener } from '@hono/node-server'
-import { createApp } from './app.ts'
+import { createApp, type AuthOptions } from './app.ts'
+import { headerClientIp, socketClientIp } from './clientip.ts'
 import { openDb } from './db.ts'
+import { parseHash } from './password.ts'
 
 const port = Number(process.env['PORT'] ?? 8787)
 // Loopback by default: there is no auth yet, so nothing may be exposed beyond the host.
@@ -14,8 +16,41 @@ const allowedHosts = process.env['ALLOWED_HOSTS']
   .map((h) => h.trim())
   .filter((h) => h !== '')
 
+const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1'])
+
+function fail(message: string): never {
+  console.error(message)
+  process.exit(1)
+}
+
+// Fail closed: the server never starts unauthenticated by accident.
+function authFromEnv(): AuthOptions {
+  if (process.env['AUTH_DISABLED'] === 'true') {
+    if (!LOOPBACK_HOSTS.has(hostname)) {
+      return fail(`AUTH_DISABLED=true is only allowed when HOST is loopback (got ${hostname})`)
+    }
+    console.warn('WARNING: authentication is disabled (loopback development only)')
+    return { disabled: true }
+  }
+  const passwordHash = process.env['AUTH_PASSWORD_HASH']
+  if (!passwordHash) {
+    return fail(
+      'AUTH_PASSWORD_HASH is required (generate one with: npm run hash-password -w @mylar/api)',
+    )
+  }
+  if (!parseHash(passwordHash)) {
+    return fail('AUTH_PASSWORD_HASH is malformed or uses unsupported scrypt parameters')
+  }
+  return { passwordHash }
+}
+
+// Header carrying the real client address when behind a trusted proxy (e.g. Fly-Client-IP).
+const proxyHeader = process.env['TRUST_PROXY_HEADER']
+
 const db = openDb(dbPath)
 const app = createApp(db, {
+  auth: authFromEnv(),
+  clientIp: proxyHeader ? headerClientIp(proxyHeader) : socketClientIp,
   ...(allowedHosts ? { allowedHosts } : {}),
   ...(webDist !== undefined ? { webDist } : {}),
 })

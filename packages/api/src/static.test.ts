@@ -13,7 +13,7 @@ beforeAll(() => {
   mkdirSync(join(dir, 'assets'))
   writeFileSync(join(dir, 'index.html'), '<!doctype html><title>shell</title>')
   writeFileSync(join(dir, 'assets', 'app.js'), 'console.log(1)')
-  app = createApp(openDb(':memory:'), { webDist: dir })
+  app = createApp(openDb(':memory:'), { auth: { disabled: true }, webDist: dir })
 })
 
 afterAll(() => {

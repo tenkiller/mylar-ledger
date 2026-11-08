@@ -29,6 +29,14 @@ const MIGRATIONS: readonly string[] = [
      source TEXT NOT NULL, observed_at TEXT NOT NULL, note TEXT
    );
 
+   CREATE TABLE session (
+     id_hash TEXT PRIMARY KEY, created_at TEXT NOT NULL, last_seen_at TEXT NOT NULL,
+     expires_at TEXT NOT NULL, password_fp TEXT NOT NULL
+   );
+   CREATE TABLE login_failure (ip TEXT NOT NULL, at TEXT NOT NULL);
+   CREATE INDEX login_failure_ip ON login_failure (ip, at);
+   CREATE INDEX login_failure_at ON login_failure (at);
+
    CREATE UNIQUE INDEX series_seq ON series (seq);
    CREATE UNIQUE INDEX issue_seq ON issue (seq);
    CREATE UNIQUE INDEX copy_seq ON copy (seq);

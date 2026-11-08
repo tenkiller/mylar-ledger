@@ -52,7 +52,7 @@ const pull = async (): Promise<PullResponse> =>
 
 beforeEach(() => {
   db = openDb(':memory:')
-  app = createApp(db, { now: () => NOW })
+  app = createApp(db, { auth: { disabled: true }, now: () => NOW })
 })
 
 describe('request boundary', () => {
@@ -77,7 +77,7 @@ describe('request boundary', () => {
   })
 
   it('honors a configured host allowlist', async () => {
-    const custom = createApp(db, { allowedHosts: ['ledger.example.com'] })
+    const custom = createApp(db, { auth: { disabled: true }, allowedHosts: ['ledger.example.com'] })
     expect((await custom.request('https://ledger.example.com/healthz')).status).toBe(200)
     expect((await custom.request('http://localhost/healthz')).status).toBe(403)
   })
@@ -152,7 +152,7 @@ describe('server identity', () => {
   })
 
   it('gives each new database its own id', async () => {
-    const other = createApp(openDb(':memory:'))
+    const other = createApp(openDb(':memory:'), { auth: { disabled: true } })
     const o = (await (await other.request('/sync/pull?since=0')).json()) as PullResponse
     expect(o.instanceId).not.toBe((await pull()).instanceId)
   })

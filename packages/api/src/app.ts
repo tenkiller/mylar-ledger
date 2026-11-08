@@ -3,6 +3,8 @@ import { serveStatic } from '@hono/node-server/serve-static'
 import { Hono } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import { pullQuerySchema, pushRequestSchema, toTimestamp } from '@mylar/shared'
+import { createAuth } from './auth.ts'
+import { socketClientIp, type ClientIpResolver } from './clientip.ts'
 import { applyMutations, pullChanges } from './sync.ts'
 
 export const DEFAULT_ALLOWED_HOSTS: readonly string[] = ['localhost', '127.0.0.1', '[::1]']
@@ -10,18 +12,36 @@ export const DEFAULT_ALLOWED_HOSTS: readonly string[] = ['localhost', '127.0.0.1
 export const MAX_CLOCK_AHEAD_MS = 5 * 60_000
 export const MAX_PUSH_BYTES = 4 * 1024 * 1024
 
+/**
+ * Required, with no default, so every caller must choose: there is no path to an unauthenticated
+ * server by omission. `disabled` is for loopback development and tests only.
+ */
+export type AuthOptions = { passwordHash: string } | { disabled: true }
+
 export interface AppOptions {
+  auth: AuthOptions
   /** Hostnames (no port) the server answers to; anything else is rejected (DNS rebinding). */
   allowedHosts?: readonly string[]
   now?: () => number
+  /** Resolves the client address used for login rate limiting. */
+  clientIp?: ClientIpResolver
   /** Directory of the built web app to serve, with SPA fallback to its index.html. */
   webDist?: string
 }
 
-export function createApp(db: DatabaseSync, options: AppOptions = {}): Hono {
+export function createApp(db: DatabaseSync, options: AppOptions): Hono {
   const hosts = new Set(options.allowedHosts ?? DEFAULT_ALLOWED_HOSTS)
   const now = options.now ?? Date.now
   const app = new Hono()
+  const auth =
+    'passwordHash' in options.auth
+      ? createAuth({
+          db,
+          passwordHash: options.auth.passwordHash,
+          now,
+          clientIp: options.clientIp ?? socketClientIp,
+        })
+      : undefined
 
   app.use('*', async (c, next) => {
     const url = new URL(c.req.url)
@@ -30,8 +50,20 @@ export function createApp(db: DatabaseSync, options: AppOptions = {}): Hono {
     if (origin !== undefined && originHost(origin) !== url.host) {
       return c.json({ error: 'forbidden_origin' }, 403)
     }
+    // Browsers label cross-site requests; refuse unsafe methods that are not same-origin.
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(c.req.method)) {
+      const site = c.req.header('sec-fetch-site')
+      if (site !== undefined && site !== 'same-origin' && site !== 'none') {
+        return c.json({ error: 'forbidden_site' }, 403)
+      }
+    }
     await next()
   })
+
+  if (auth) {
+    app.route('/auth', auth.routes)
+    app.use('/sync/*', auth.requireAuth)
+  }
 
   app.get('/healthz', (c) => {
     db.prepare('SELECT 1').get()
@@ -80,7 +112,8 @@ export function createApp(db: DatabaseSync, options: AppOptions = {}): Hono {
         if (
           last.includes('.') ||
           pathname.startsWith('/assets/') ||
-          pathname.startsWith('/sync/')
+          pathname.startsWith('/sync/') ||
+          pathname.startsWith('/auth/')
         ) {
           return c.notFound()
         }

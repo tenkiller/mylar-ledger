@@ -43,7 +43,7 @@ async function pull(since: number, limit?: number): Promise<PullResponse> {
 
 beforeEach(() => {
   db = openDb(':memory:')
-  app = createApp(db)
+  app = createApp(db, { auth: { disabled: true } })
 })
 
 describe('sync', () => {
