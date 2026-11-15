@@ -1,11 +1,4 @@
-import {
-  fromTimestamp,
-  mutationSchema,
-  toTimestamp,
-  uuidv7,
-  type Mutation,
-  type Series,
-} from '@mylar/shared'
+import { fromTimestamp, mutationSchema, toTimestamp, uuidv7, type Mutation, type Series } from '@mylar/shared'
 import type { MylarDb } from './db.ts'
 
 /**

@@ -51,9 +51,7 @@ export function openDb(path: string, busyTimeoutMs = 5000): DatabaseSync {
   const db = new DatabaseSync(path)
   // busy_timeout: Litestream's checkpoints briefly lock the WAL, so writers must wait, not fail.
   // It is set first so the journal_mode switch below, which also takes a lock, waits too.
-  db.exec(
-    `PRAGMA busy_timeout = ${busyTimeoutMs}; PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;`,
-  )
+  db.exec(`PRAGMA busy_timeout = ${busyTimeoutMs}; PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;`)
   migrate(db)
   return db
 }

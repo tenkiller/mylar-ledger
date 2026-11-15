@@ -15,19 +15,17 @@ export function rateLimitKey(rawIp: string): string {
   const head = left === '' ? [] : left.split(':')
   const tail = right === undefined || right === '' ? [] : right.split(':')
   const groups =
-    right === undefined
-      ? head
-      : [...head, ...Array<string>(8 - head.length - tail.length).fill('0'), ...tail]
+    right === undefined ? head : [...head, ...Array<string>(8 - head.length - tail.length).fill('0'), ...tail]
   return `${groups
     .slice(0, 4)
-    .map((g) => g.replace(/^0+(?=.)/, ''))
+    .map(g => g.replace(/^0+(?=.)/, ''))
     .join(':')}::/64`
 }
 
 export type ClientIpResolver = (c: Context) => string
 
 /** Socket peer address; "unknown" when unavailable (e.g. `app.request` in tests). */
-export const socketClientIp: ClientIpResolver = (c) => {
+export const socketClientIp: ClientIpResolver = c => {
   try {
     return getConnInfo(c).remote.address ?? 'unknown'
   } catch {
@@ -40,5 +38,5 @@ export const socketClientIp: ClientIpResolver = (c) => {
  * client could send it and pick its own rate-limit bucket. Falls back to the socket address.
  */
 export function headerClientIp(headerName: string): ClientIpResolver {
-  return (c) => c.req.header(headerName)?.trim() || socketClientIp(c)
+  return c => c.req.header(headerName)?.trim() || socketClientIp(c)
 }

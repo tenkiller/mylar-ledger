@@ -13,8 +13,7 @@ interface FakeEvent {
 const ORIGIN = 'http://localhost'
 const SW_SOURCE = readFileSync(new URL('../public/sw.js', import.meta.url), 'utf8')
 
-const keyOf = (r: string | { url: string }): string =>
-  typeof r === 'string' ? new URL(r, ORIGIN).href : r.url
+const keyOf = (r: string | { url: string }): string => (typeof r === 'string' ? new URL(r, ORIGIN).href : r.url)
 
 interface Harness {
   caches: Map<string, Map<string, Response>>
@@ -72,14 +71,14 @@ function load(): Harness {
     fetchFn,
     async fire(type) {
       const pending: Promise<unknown>[] = []
-      handlers.get(type)?.({ waitUntil: (p) => pending.push(p) })
+      handlers.get(type)?.({ waitUntil: p => pending.push(p) })
       await Promise.all(pending)
     },
     async request(path, mode = 'no-cors', method = 'GET') {
       let responded: Promise<Response> | undefined
       handlers.get('fetch')?.({
         request: { method, url: new URL(path, ORIGIN).href, mode },
-        respondWith: (p) => {
+        respondWith: p => {
           responded = p
         },
         // waitUntil work is deliberately not awaited: the browser does not block the response on it.
@@ -151,7 +150,7 @@ describe('service worker fetch', () => {
   it('waits for the network when nothing is cached', async () => {
     const h = load()
     let resolve: (r: Response) => void = () => undefined
-    h.fetchFn.mockReturnValue(new Promise<Response>((r) => (resolve = r)))
+    h.fetchFn.mockReturnValue(new Promise<Response>(r => (resolve = r)))
     const p = h.request('/new.js')
     await vi.advanceTimersByTimeAsync(10_000)
     resolve(new Response('late'))

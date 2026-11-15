@@ -5,7 +5,7 @@ export function useLiveQuery<T>(querier: () => T | Promise<T>): T | undefined {
   const [state, setState] = useState<{ value: T } | undefined>(undefined)
   useEffect(() => {
     const sub = liveQuery(querier).subscribe({
-      next: (value) => {
+      next: value => {
         setState({ value })
       },
       error: (err: unknown) => {

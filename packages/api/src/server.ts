@@ -13,8 +13,8 @@ const webDist = process.env['WEB_DIST']
 // Comma-separated hostnames to answer to. Set this to the public hostname when deploying.
 const allowedHosts = process.env['ALLOWED_HOSTS']
   ?.split(',')
-  .map((h) => h.trim())
-  .filter((h) => h !== '')
+  .map(h => h.trim())
+  .filter(h => h !== '')
 
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1'])
 
@@ -34,9 +34,7 @@ function authFromEnv(): AuthOptions {
   }
   const passwordHash = process.env['AUTH_PASSWORD_HASH']
   if (!passwordHash) {
-    return fail(
-      'AUTH_PASSWORD_HASH is required (generate one with: npm run hash-password -w @mylar/api)',
-    )
+    return fail('AUTH_PASSWORD_HASH is required (generate one with: npm run hash-password -w @mylar/api)')
   }
   if (!parseHash(passwordHash)) {
     return fail('AUTH_PASSWORD_HASH is malformed or uses unsupported scrypt parameters')

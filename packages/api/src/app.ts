@@ -65,7 +65,7 @@ export function createApp(db: DatabaseSync, options: AppOptions): Hono {
     app.use('/sync/*', auth.requireAuth)
   }
 
-  app.get('/healthz', (c) => {
+  app.get('/healthz', c => {
     db.prepare('SELECT 1').get()
     return c.json({ ok: true })
   })
@@ -74,11 +74,11 @@ export function createApp(db: DatabaseSync, options: AppOptions): Hono {
     '/sync/push',
     bodyLimit({
       maxSize: MAX_PUSH_BYTES,
-      onError: (c) => c.json({ error: 'payload_too_large' }, 413),
+      onError: c => c.json({ error: 'payload_too_large' }, 413),
     }),
   )
 
-  app.post('/sync/push', async (c) => {
+  app.post('/sync/push', async c => {
     // Requiring JSON forces a CORS preflight for cross-site callers, which we never approve.
     if (!c.req.header('content-type')?.toLowerCase().startsWith('application/json')) {
       return c.json({ error: 'unsupported_media_type' }, 415)
@@ -87,13 +87,13 @@ export function createApp(db: DatabaseSync, options: AppOptions): Hono {
     const parsed = pushRequestSchema.safeParse(body)
     if (!parsed.success) return c.json({ error: 'invalid_request' }, 400)
     const latest = toTimestamp(now() + MAX_CLOCK_AHEAD_MS)
-    if (parsed.data.mutations.some((m) => m.record.updatedAt > latest)) {
+    if (parsed.data.mutations.some(m => m.record.updatedAt > latest)) {
       return c.json({ error: 'timestamp_in_future' }, 400)
     }
     return c.json(applyMutations(db, parsed.data.mutations))
   })
 
-  app.get('/sync/pull', (c) => {
+  app.get('/sync/pull', c => {
     const parsed = pullQuerySchema.safeParse(c.req.query())
     if (!parsed.success) return c.json({ error: 'invalid_request' }, 400)
     return c.json(pullChanges(db, parsed.data.since, parsed.data.limit))

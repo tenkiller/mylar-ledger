@@ -39,15 +39,13 @@ describe('client sync', () => {
     await addSeries(a, { title: 'Monstress' })
     await syncOnce(a, fetchFn)
     await syncOnce(b, fetchFn)
-    expect((await b.series.toArray()).map((s) => s.title).sort()).toEqual(['Monstress', 'Saga'])
+    expect((await b.series.toArray()).map(s => s.title).sort()).toEqual(['Monstress', 'Saga'])
 
-    const saga = (await a.series.toArray()).find((s) => s.title === 'Saga')
+    const saga = (await a.series.toArray()).find(s => s.title === 'Saga')
     await deleteSeries(a, saga?.id ?? '')
     await syncOnce(a, fetchFn)
     await syncOnce(b, fetchFn)
-    expect(
-      (await b.series.toArray()).filter((s) => s.deletedAt === undefined).map((s) => s.title),
-    ).toEqual(['Monstress'])
+    expect((await b.series.toArray()).filter(s => s.deletedAt === undefined).map(s => s.title)).toEqual(['Monstress'])
   })
 
   it('keeps queued writes when offline and delivers them later', async () => {
@@ -136,7 +134,7 @@ describe('client sync', () => {
 
     const b = newDevice()
     await syncOnce(b, fetchFn)
-    expect((await b.series.toArray()).map((s) => s.title).sort()).toEqual(['Monstress', 'Saga'])
+    expect((await b.series.toArray()).map(s => s.title).sort()).toEqual(['Monstress', 'Saga'])
     expect(await a.outbox.count()).toBe(0)
   })
 
@@ -172,7 +170,7 @@ describe('client sync', () => {
     const err = await syncOnce(a, rejectPush).catch((e: unknown) => e)
     expect(err).toBeInstanceOf(SyncRejectedError)
     expect((err as SyncRejectedError).code).toBe('invalid_request')
-    expect((await a.series.toArray()).map((s) => s.title).sort()).toEqual(['From b', 'Stuck'])
+    expect((await a.series.toArray()).map(s => s.title).sort()).toEqual(['From b', 'Stuck'])
     expect(await a.outbox.count()).toBe(1)
   })
 
@@ -192,7 +190,7 @@ describe('client sync', () => {
     expect(await a.outbox.count()).toBe(0)
     const b = newDevice()
     await syncOnce(b, fetchFn)
-    expect((await b.series.toArray()).map((s) => s.title).sort()).toEqual(['During', 'First'])
+    expect((await b.series.toArray()).map(s => s.title).sort()).toEqual(['During', 'First'])
   })
 
   it('syncs more than one push batch and more than one pull page', async () => {
