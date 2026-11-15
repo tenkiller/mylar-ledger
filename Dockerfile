@@ -1,21 +1,19 @@
-FROM node:26-slim AS build
+FROM node:26-slim AS base
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY packages/shared/package.json packages/shared/
 COPY packages/api/package.json packages/api/
 COPY packages/web/package.json packages/web/
+
+FROM base AS build
 RUN npm ci
 COPY tsconfig.base.json ./
 COPY packages ./packages
 RUN npm run build -w @mylar/web
 
-FROM node:26-slim
+FROM base
+# Set here, not in base: the build stage needs devDependencies, which NODE_ENV=production omits.
 ENV NODE_ENV=production PORT=8787 DB_PATH=/data/mylar.sqlite WEB_DIST=/app/web-dist
-WORKDIR /app
-COPY package.json package-lock.json ./
-COPY packages/shared/package.json packages/shared/
-COPY packages/api/package.json packages/api/
-COPY packages/web/package.json packages/web/
 RUN npm ci --omit=dev -w @mylar/api
 COPY packages/shared/src packages/shared/src
 COPY packages/api/src packages/api/src
