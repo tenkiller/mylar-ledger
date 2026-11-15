@@ -45,9 +45,9 @@ describe('client sync', () => {
     await deleteSeries(a, saga?.id ?? '')
     await syncOnce(a, fetchFn)
     await syncOnce(b, fetchFn)
-    expect(
-      (await b.series.toArray()).filter((s) => s.deletedAt === undefined).map((s) => s.title),
-    ).toEqual(['Monstress'])
+    expect((await b.series.toArray()).filter((s) => s.deletedAt === undefined).map((s) => s.title)).toEqual([
+      'Monstress',
+    ])
   })
 
   it('keeps queued writes when offline and delivers them later', async () => {

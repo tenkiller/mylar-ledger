@@ -15,9 +15,7 @@ export function rateLimitKey(rawIp: string): string {
   const head = left === '' ? [] : left.split(':')
   const tail = right === undefined || right === '' ? [] : right.split(':')
   const groups =
-    right === undefined
-      ? head
-      : [...head, ...Array<string>(8 - head.length - tail.length).fill('0'), ...tail]
+    right === undefined ? head : [...head, ...Array<string>(8 - head.length - tail.length).fill('0'), ...tail]
   return `${groups
     .slice(0, 4)
     .map((g) => g.replace(/^0+(?=.)/, ''))

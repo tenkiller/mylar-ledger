@@ -60,8 +60,7 @@ async function signIn(): Promise<{ cookie: string }> {
   return cookieHeader(set)
 }
 
-const pull = (headers: Record<string, string> = {}) =>
-  app.request('/sync/pull?since=0', { headers })
+const pull = (headers: Record<string, string> = {}) => app.request('/sync/pull?since=0', { headers })
 
 describe('login and cookie', () => {
   it('sets a hardened host-prefixed session cookie', async () => {

@@ -16,8 +16,7 @@ const pngIcons = manifest.icons.filter((i) => i.type === 'image/png')
 
 describe('web app manifest icons', () => {
   it('declares the PNG sizes Android needs, including a maskable icon', () => {
-    const has = (sizes: string, purpose: string) =>
-      pngIcons.some((i) => i.sizes === sizes && i.purpose === purpose)
+    const has = (sizes: string, purpose: string) => pngIcons.some((i) => i.sizes === sizes && i.purpose === purpose)
     expect(has('192x192', 'any')).toBe(true)
     expect(has('512x512', 'any')).toBe(true)
     expect(has('512x512', 'maskable')).toBe(true)

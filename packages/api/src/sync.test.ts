@@ -1,12 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { DatabaseSync } from 'node:sqlite'
-import {
-  toTimestamp,
-  uuidv7,
-  type Mutation,
-  type PullResponse,
-  type PushResponse,
-} from '@mylar/shared'
+import { toTimestamp, uuidv7, type Mutation, type PullResponse, type PushResponse } from '@mylar/shared'
 import { createApp } from './app.ts'
 import { openDb } from './db.ts'
 

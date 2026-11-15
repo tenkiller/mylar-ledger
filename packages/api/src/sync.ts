@@ -66,8 +66,7 @@ export function instanceId(db: DatabaseSync): string {
 }
 
 export function currentSeq(db: DatabaseSync): number {
-  const row = db.prepare('SELECT value FROM seq_counter WHERE id = 1').get() as
-    { value: number } | undefined
+  const row = db.prepare('SELECT value FROM seq_counter WHERE id = 1').get() as { value: number } | undefined
   return row?.value ?? 0
 }
 
@@ -101,14 +100,7 @@ function toRecord(row: Row, table: TableName): Row {
 }
 
 function upsertSql(table: TableName): string {
-  const cols = [
-    'id',
-    'created_at',
-    'updated_at',
-    'deleted_at',
-    'seq',
-    ...COLUMNS[table].map((x) => x.column),
-  ]
+  const cols = ['id', 'created_at', 'updated_at', 'deleted_at', 'seq', ...COLUMNS[table].map((x) => x.column)]
   const placeholders = cols.map(() => '?').join(', ')
   // created_at is immutable once stored.
   const updates = cols
@@ -133,9 +125,7 @@ export function applyMutations(db: DatabaseSync, mutations: readonly Mutation[])
     TableName,
     ReturnType<DatabaseSync['prepare']>
   >
-  const tombstoneSnapshot = db.prepare(
-    'UPDATE price_snapshot SET deleted_at = ?, updated_at = ?, seq = ? WHERE id = ?',
-  )
+  const tombstoneSnapshot = db.prepare('UPDATE price_snapshot SET deleted_at = ?, updated_at = ?, seq = ? WHERE id = ?')
   const bump = db.prepare('UPDATE seq_counter SET value = ? WHERE id = 1')
 
   let applied = 0
@@ -143,8 +133,7 @@ export function applyMutations(db: DatabaseSync, mutations: readonly Mutation[])
   try {
     let seq = currentSeq(db)
     for (const { table, record } of mutations) {
-      const existing = find[table].get(record.id) as
-        { updated_at: string; deleted_at: string | null } | undefined
+      const existing = find[table].get(record.id) as { updated_at: string; deleted_at: string | null } | undefined
       if (existing !== undefined && record.updatedAt <= existing.updated_at) continue
       if (table === 'price_snapshot' && existing !== undefined) {
         // Append-only: an existing snapshot's content never changes; it can only be tombstoned once.
@@ -171,11 +160,9 @@ export function pullChanges(db: DatabaseSync, since: number, limit: number): Pul
   // Each table's own top-`limit+1` is enough: the global top-`limit+1` is a subset of their union.
   const rows = tableNames
     .flatMap((table) =>
-      (
-        db
-          .prepare(`SELECT * FROM ${table} WHERE seq > ? ORDER BY seq LIMIT ?`)
-          .all(since, limit + 1) as Row[]
-      ).map((row) => ({ table, row })),
+      (db.prepare(`SELECT * FROM ${table} WHERE seq > ? ORDER BY seq LIMIT ?`).all(since, limit + 1) as Row[]).map(
+        (row) => ({ table, row }),
+      ),
     )
     .sort((a, b) => (a.row['seq'] as number) - (b.row['seq'] as number))
     .slice(0, limit + 1)

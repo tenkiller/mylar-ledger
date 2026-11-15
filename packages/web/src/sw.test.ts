@@ -13,8 +13,7 @@ interface FakeEvent {
 const ORIGIN = 'http://localhost'
 const SW_SOURCE = readFileSync(new URL('../public/sw.js', import.meta.url), 'utf8')
 
-const keyOf = (r: string | { url: string }): string =>
-  typeof r === 'string' ? new URL(r, ORIGIN).href : r.url
+const keyOf = (r: string | { url: string }): string => (typeof r === 'string' ? new URL(r, ORIGIN).href : r.url)
 
 interface Harness {
   caches: Map<string, Map<string, Response>>

@@ -47,8 +47,7 @@ const snapshot = (id: string, over: Partial<PriceSnapshot>): Mutation => ({
 const push = (mutations: unknown[], headers: Record<string, string> = JSON_HEADERS) =>
   app.request('/sync/push', { method: 'POST', headers, body: JSON.stringify({ mutations }) })
 
-const pull = async (): Promise<PullResponse> =>
-  (await (await app.request('/sync/pull?since=0')).json()) as PullResponse
+const pull = async (): Promise<PullResponse> => (await (await app.request('/sync/pull?since=0')).json()) as PullResponse
 
 beforeEach(() => {
   db = openDb(':memory:')
@@ -179,18 +178,14 @@ describe('immutability rules', () => {
       updatedAt: toTimestamp(300),
     })
 
-    const again = await push([
-      snapshot(id, { updatedAt: toTimestamp(400), deletedAt: toTimestamp(400) }),
-    ])
+    const again = await push([snapshot(id, { updatedAt: toTimestamp(400), deletedAt: toTimestamp(400) })])
     expect(((await again.json()) as PushResponse).applied).toBe(0)
   })
 
   it('never overwrites createdAt on update', async () => {
     const m = series({ createdAt: toTimestamp(5) }, 100)
     await push([m])
-    await push([
-      { ...m, record: { ...m.record, createdAt: toTimestamp(9), updatedAt: toTimestamp(200) } },
-    ])
+    await push([{ ...m, record: { ...m.record, createdAt: toTimestamp(9), updatedAt: toTimestamp(200) } }])
     const [change] = (await pull()).changes
     expect(change?.mutation.record).toMatchObject({
       createdAt: toTimestamp(5),
@@ -205,11 +200,7 @@ describe('transactions', () => {
       `CREATE TRIGGER reject_boom BEFORE INSERT ON series WHEN NEW.title = 'boom'
        BEGIN SELECT RAISE(ABORT, 'boom'); END`,
     )
-    const batch = [
-      series({ title: 'before' }),
-      series({ title: 'boom' }),
-      series({ title: 'after' }),
-    ]
+    const batch = [series({ title: 'before' }), series({ title: 'boom' }), series({ title: 'after' })]
     expect(() => applyMutations(db, batch)).toThrow('boom')
 
     expect((await pull()).changes).toHaveLength(0)
@@ -225,9 +216,7 @@ describe('deletes under last-write-wins', () => {
   it('lets a later edit resurrect a tombstoned row (whole-row LWW, by design)', async () => {
     const m = series({}, 100)
     await push([m])
-    await push([
-      { ...m, record: { ...m.record, updatedAt: toTimestamp(200), deletedAt: toTimestamp(200) } },
-    ])
+    await push([{ ...m, record: { ...m.record, updatedAt: toTimestamp(200), deletedAt: toTimestamp(200) } }])
     expect((await pull()).changes[0]?.mutation.record.deletedAt).toBe(toTimestamp(200))
 
     // A stale device that never saw the delete edits later, so its live copy wins.
@@ -240,12 +229,8 @@ describe('deletes under last-write-wins', () => {
   it('does not let an edit older than the tombstone resurrect the row', async () => {
     const m = series({}, 100)
     await push([m])
-    await push([
-      { ...m, record: { ...m.record, updatedAt: toTimestamp(300), deletedAt: toTimestamp(300) } },
-    ])
-    const stale = await push([
-      { ...m, record: { ...m.record, title: 'Stale', updatedAt: toTimestamp(200) } },
-    ])
+    await push([{ ...m, record: { ...m.record, updatedAt: toTimestamp(300), deletedAt: toTimestamp(300) } }])
+    const stale = await push([{ ...m, record: { ...m.record, title: 'Stale', updatedAt: toTimestamp(200) } }])
     expect(((await stale.json()) as PushResponse).applied).toBe(0)
     expect((await pull()).changes[0]?.mutation.record.deletedAt).toBe(toTimestamp(300))
   })

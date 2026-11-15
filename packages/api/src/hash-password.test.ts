@@ -3,8 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { verifyPassword } from './password.ts'
 
 const script = new URL('./hash-password.ts', import.meta.url).pathname
-const run = (input: string) =>
-  spawnSync(process.execPath, [script], { input, encoding: 'utf8', timeout: 20_000 })
+const run = (input: string) => spawnSync(process.execPath, [script], { input, encoding: 'utf8', timeout: 20_000 })
 
 describe('hash-password script', () => {
   it('prints only a verifiable hash for piped input', async () => {

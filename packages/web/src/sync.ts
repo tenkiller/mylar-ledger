@@ -148,9 +148,7 @@ async function requeueEverything(db: MylarDb): Promise<void> {
     await db.outbox.clear()
     for (const name of tableNames) {
       const rows = await db.synced(name).toArray()
-      await db.outbox.bulkAdd(
-        rows.map((record) => ({ mutation: mutationSchema.parse({ table: name, record }) })),
-      )
+      await db.outbox.bulkAdd(rows.map((record) => ({ mutation: mutationSchema.parse({ table: name, record }) })))
     }
     await db.syncState.clear()
   })

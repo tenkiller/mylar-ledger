@@ -64,10 +64,7 @@ export function parseHash(stored: string): ParsedHash | undefined {
   return { params, salt: saltBuf, key: keyBuf }
 }
 
-export async function hashPassword(
-  password: string,
-  params: ScryptParams = DEFAULT_PARAMS,
-): Promise<string> {
+export async function hashPassword(password: string, params: ScryptParams = DEFAULT_PARAMS): Promise<string> {
   if (!isSupported(params)) throw new Error('unsupported scrypt parameters')
   const salt = randomBytes(SALT_LENGTH)
   const key = await derive(password, salt, params)

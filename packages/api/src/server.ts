@@ -34,9 +34,7 @@ function authFromEnv(): AuthOptions {
   }
   const passwordHash = process.env['AUTH_PASSWORD_HASH']
   if (!passwordHash) {
-    return fail(
-      'AUTH_PASSWORD_HASH is required (generate one with: npm run hash-password -w @mylar/api)',
-    )
+    return fail('AUTH_PASSWORD_HASH is required (generate one with: npm run hash-password -w @mylar/api)')
   }
   if (!parseHash(passwordHash)) {
     return fail('AUTH_PASSWORD_HASH is malformed or uses unsupported scrypt parameters')

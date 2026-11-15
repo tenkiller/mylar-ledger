@@ -63,13 +63,7 @@ export function createAuth({ db, passwordHash, now, clientIp }: AuthDeps): Auth 
     db.prepare(
       `INSERT INTO session (id_hash, created_at, last_seen_at, expires_at, password_fp)
        VALUES (?, ?, ?, ?, ?)`,
-    ).run(
-      sha256(token),
-      toTimestamp(nowMs),
-      toTimestamp(nowMs),
-      toTimestamp(nowMs + SESSION_TTL_MS),
-      fingerprint,
-    )
+    ).run(sha256(token), toTimestamp(nowMs), toTimestamp(nowMs), toTimestamp(nowMs + SESSION_TTL_MS), fingerprint)
     return { token, maxAgeSeconds: SESSION_TTL_MS / 1000 }
   }
 
@@ -77,9 +71,7 @@ export function createAuth({ db, passwordHash, now, clientIp }: AuthDeps): Auth 
   function checkSession(token: string): { reissueSeconds?: number } | undefined {
     const id = sha256(token)
     const row = db
-      .prepare(
-        'SELECT created_at, last_seen_at, expires_at, password_fp FROM session WHERE id_hash = ?',
-      )
+      .prepare('SELECT created_at, last_seen_at, expires_at, password_fp FROM session WHERE id_hash = ?')
       .get(id) as SessionRow | undefined
     if (!row) return undefined
     const nowMs = now()
@@ -89,10 +81,7 @@ export function createAuth({ db, passwordHash, now, clientIp }: AuthDeps): Auth 
       return undefined
     }
     if (nowMs - fromTimestamp(row.last_seen_at) < SLIDE_AFTER_MS) return {}
-    const expiresMs = Math.min(
-      nowMs + SESSION_TTL_MS,
-      fromTimestamp(row.created_at) + SESSION_MAX_AGE_MS,
-    )
+    const expiresMs = Math.min(nowMs + SESSION_TTL_MS, fromTimestamp(row.created_at) + SESSION_MAX_AGE_MS)
     db.prepare('UPDATE session SET last_seen_at = ?, expires_at = ? WHERE id_hash = ?').run(
       toTimestamp(nowMs),
       toTimestamp(expiresMs),
@@ -113,9 +102,7 @@ export function createAuth({ db, passwordHash, now, clientIp }: AuthDeps): Auth 
   /** Seconds until another attempt is allowed; 0 means allowed. Checked before any scrypt work. */
   function retryAfterSeconds(ip: string): number {
     const nowMs = now()
-    db.prepare('DELETE FROM login_failure WHERE at <= ?').run(
-      toTimestamp(nowMs - GLOBAL_LIMIT.windowMs),
-    )
+    db.prepare('DELETE FROM login_failure WHERE at <= ?').run(toTimestamp(nowMs - GLOBAL_LIMIT.windowMs))
     const rows = (sql: string, ...args: string[]): string[] =>
       (db.prepare(sql).all(...args) as { at: string }[]).map((r) => r.at)
     const perIp = rows(

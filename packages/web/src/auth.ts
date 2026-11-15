@@ -2,8 +2,7 @@ import { loginRequestSchema } from '@mylar/shared'
 import type { FetchFn } from './sync.ts'
 
 export type LoginResult =
-  | { ok: true }
-  | { ok: false; reason: 'invalid' | 'rate_limited' | 'busy' | 'error'; retryAfterSeconds?: number }
+  { ok: true } | { ok: false; reason: 'invalid' | 'rate_limited' | 'busy' | 'error'; retryAfterSeconds?: number }
 
 /**
  * Signs in with the single account's password. The session lives in an HttpOnly cookie that
