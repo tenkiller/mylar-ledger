@@ -12,6 +12,20 @@ Hono + `node:sqlite` server; deployed target is Fly.io (single machine + volume)
 
 - ESNext syntax. No semicolons (Prettier enforces: `npm run format`).
 
+## Task hand-offs (Linear)
+
+- When I assign a code task to the user (a piece reserved for them under the global Hands-On
+  Learning rule, or anything I say is "yours"), create a Linear issue for it in the same turn:
+  team `BRE`, project `Mylar`, assignee `me`. Put the issue identifier in my reply.
+- Search `list_issues` (project `Mylar`) first; update a matching issue instead of creating a
+  duplicate.
+- Title is imperative and specific. The description is for a human reader, in short sentences:
+  goal, why it is theirs, the files involved, the approach and pitfalls (the hints I gave), and a
+  "Done when" checklist. Branch name and file list go in a collapsible "Agent notes" section.
+- Only for code tasks handed to the user. No issues for my own work, questions or explanations.
+- Check `list_issue_statuses` before setting a status. Mark an issue done only after the user
+  confirms the work is complete.
+
 ## Invariants
 
 - Server is authoritative; each client holds a full local copy. Writes go through `saveMutation`

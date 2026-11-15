@@ -1,0 +1,49 @@
+app = "mylar-ledger"
+primary_region = "dfw"
+# SIGTERM goes to Litestream, which stops the server (5s grace) and then does a final sync to
+# Tigris. A SIGKILL before that sync finishes leaves the latest writes only on the volume.
+kill_signal = "SIGTERM"
+kill_timeout = 30
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  HOST = "0.0.0.0"
+  PORT = "8787"
+  # The Host allowlist also applies to health checks, so the check below sends this Host.
+  ALLOWED_HOSTS = "mylar-ledger.fly.dev"
+  # Only the Fly proxy can reach the machine, so its client-IP header is trustworthy here.
+  TRUST_PROXY_HEADER = "Fly-Client-IP"
+
+[[mounts]]
+  source = "mylar_data"
+  destination = "/data"
+  initial_size = "1gb"
+  scheduled_snapshots = true
+  snapshot_retention = 14
+  auto_extend_size_threshold = 80
+  auto_extend_size_increment = "1GB"
+  auto_extend_size_limit = "5GB"
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  # One machine, scaled to zero when idle. The app is offline-first, so a cold start is tolerable.
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    timeout = "5s"
+    method = "GET"
+    path = "/healthz"
+    [http_service.checks.headers]
+      Host = "mylar-ledger.fly.dev"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  # Node plus up to two concurrent scrypt verifications (~32 MiB each) plus Litestream.
+  memory = "512mb"
