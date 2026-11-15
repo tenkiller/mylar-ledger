@@ -65,18 +65,19 @@ export function instanceId(db: DatabaseSync): string {
   return row.instance_id
 }
 
-export function currentSeq(db: DatabaseSync): number {
-  const row = db.prepare('SELECT value FROM seq_counter WHERE id = 1').get() as { value: number } | undefined
+export function currentSeq(db: DatabaseSync, userId: string): number {
+  const row = db.prepare('SELECT value FROM seq_counter WHERE user_id = ?').get(userId) as { value: number } | undefined
   return row?.value ?? 0
 }
 
-function toParams(table: TableName, record: Row, seq: number): SQLInputValue[] {
+function toParams(table: TableName, record: Row, seq: number, userId: string): SQLInputValue[] {
   const domain = COLUMNS[table].map(({ field }) => {
     const v = record[field]
     return v === undefined ? null : (v as SQLInputValue)
   })
   return [
     record['id'] as string,
+    userId,
     record['createdAt'] as string,
     record['updatedAt'] as string,
     (record['deletedAt'] as string | undefined) ?? null,
@@ -100,16 +101,16 @@ function toRecord(row: Row, table: TableName): Row {
 }
 
 function upsertSql(table: TableName): string {
-  const cols = ['id', 'created_at', 'updated_at', 'deleted_at', 'seq', ...COLUMNS[table].map(x => x.column)]
+  const cols = ['id', 'user_id', 'created_at', 'updated_at', 'deleted_at', 'seq', ...COLUMNS[table].map(x => x.column)]
   const placeholders = cols.map(() => '?').join(', ')
   // created_at is immutable once stored.
   const updates = cols
     .slice(1)
-    .filter(col => col !== 'created_at')
+    .filter(col => !['created_at', 'user_id'].includes(col))
     .map(col => `${col} = excluded.${col}`)
     .join(', ')
   return `INSERT INTO ${table} (${cols.join(', ')}) VALUES (${placeholders})
-          ON CONFLICT (id) DO UPDATE SET ${updates}`
+          ON CONFLICT (user_id, id) DO UPDATE SET ${updates}`
 }
 
 /**
@@ -117,37 +118,47 @@ function upsertSql(table: TableName): string {
  * also makes re-pushing the same outbox entry a no-op. Only applied changes get a new seq.
  * Table names interpolated into SQL come from the closed `TableName` enum, never from input.
  */
-export function applyMutations(db: DatabaseSync, mutations: readonly Mutation[]): PushResponse {
+export function applyMutations(db: DatabaseSync, userId: string, mutations: readonly Mutation[]): PushResponse {
   const find = Object.fromEntries(
-    tableNames.map(t => [t, db.prepare(`SELECT updated_at, deleted_at FROM ${t} WHERE id = ?`)]),
+    tableNames.map(t => [t, db.prepare(`SELECT updated_at, deleted_at FROM ${t} WHERE user_id = ? AND id = ?`)]),
   ) as Record<TableName, ReturnType<DatabaseSync['prepare']>>
   const upsert = Object.fromEntries(tableNames.map(t => [t, db.prepare(upsertSql(t))])) as Record<
     TableName,
     ReturnType<DatabaseSync['prepare']>
   >
-  const tombstoneSnapshot = db.prepare('UPDATE price_snapshot SET deleted_at = ?, updated_at = ?, seq = ? WHERE id = ?')
-  const bump = db.prepare('UPDATE seq_counter SET value = ? WHERE id = 1')
+  const tombstoneSnapshot = db.prepare(
+    'UPDATE price_snapshot SET deleted_at = ?, updated_at = ?, seq = ? WHERE user_id = ? AND id = ?',
+  )
+  const bump = db.prepare(
+    `INSERT INTO seq_counter (user_id, value) VALUES (?, ?)
+    ON CONFLICT (user_id) DO UPDATE SET value = excluded.value`,
+  )
 
   let applied = 0
   db.exec('BEGIN IMMEDIATE')
   try {
-    let seq = currentSeq(db)
+    let seq = currentSeq(db, userId)
     for (const { table, record } of mutations) {
-      const existing = find[table].get(record.id) as { updated_at: string; deleted_at: string | null } | undefined
+      const existing = find[table].get(userId, record.id) as
+        { updated_at: string; deleted_at: string | null } | undefined
       if (existing !== undefined && record.updatedAt <= existing.updated_at) continue
       if (table === 'price_snapshot' && existing !== undefined) {
         // Append-only: an existing snapshot's content never changes; it can only be tombstoned once.
         if (record.deletedAt === undefined || existing.deleted_at !== null) continue
         seq += 1
-        tombstoneSnapshot.run(record.deletedAt, record.updatedAt, seq, record.id)
+        tombstoneSnapshot.run(record.deletedAt, record.updatedAt, seq, userId, record.id)
         applied += 1
         continue
       }
       seq += 1
-      upsert[table].run(...toParams(table, record, seq))
+      upsert[table].run(...toParams(table, record, seq, userId))
       applied += 1
     }
-    bump.run(seq)
+
+    if (applied > 0) {
+      bump.run(userId, seq)
+    }
+
     db.exec('COMMIT')
     return { applied, seq }
   } catch (err) {
@@ -156,13 +167,15 @@ export function applyMutations(db: DatabaseSync, mutations: readonly Mutation[])
   }
 }
 
-export function pullChanges(db: DatabaseSync, since: number, limit: number): PullResponse {
+export function pullChanges(db: DatabaseSync, userId: string, since: number, limit: number): PullResponse {
   // Each table's own top-`limit+1` is enough: the global top-`limit+1` is a subset of their union.
   const rows = tableNames
     .flatMap(table =>
-      (db.prepare(`SELECT * FROM ${table} WHERE seq > ? ORDER BY seq LIMIT ?`).all(since, limit + 1) as Row[]).map(
-        row => ({ table, row }),
-      ),
+      (
+        db
+          .prepare(`SELECT * FROM ${table} WHERE user_id = ? AND seq > ? ORDER BY seq LIMIT ?`)
+          .all(userId, since, limit + 1) as Row[]
+      ).map(row => ({ table, row })),
     )
     .sort((a, b) => (a.row['seq'] as number) - (b.row['seq'] as number))
     .slice(0, limit + 1)
@@ -176,6 +189,6 @@ export function pullChanges(db: DatabaseSync, since: number, limit: number): Pul
     nextSeq: page.at(-1) ? (page.at(-1)?.row['seq'] as number) : since,
     hasMore: rows.length > limit,
     instanceId: instanceId(db),
-    serverSeq: currentSeq(db),
+    serverSeq: currentSeq(db, userId),
   }
 }

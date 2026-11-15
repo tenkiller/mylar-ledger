@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { uuidv7, type Mutation } from '@mylar/shared'
+import { SINGLE_USER_ID as userId } from './app.ts'
 import { openDb } from './db.ts'
 import { applyMutations, COLUMNS, pullChanges } from './sync.ts'
 import { tableNames } from '@mylar/shared'
@@ -93,18 +94,18 @@ describe('per-table storage', () => {
     ['required fields only', minimal],
   ])('round-trips every table (%s)', (_name, mutations) => {
     const db = openDb(':memory:')
-    expect(applyMutations(db, mutations).applied).toBe(4)
-    const out = pullChanges(db, 0, 100)
+    expect(applyMutations(db, userId, mutations).applied).toBe(4)
+    const out = pullChanges(db, userId, 0, 100)
     expect(out.changes.map(x => x.mutation)).toEqual(mutations)
     expect(out.changes.map(x => x.seq)).toEqual([1, 2, 3, 4])
   })
 
   it('keeps one global seq ordering across tables', () => {
     const db = openDb(':memory:')
-    applyMutations(db, full)
-    const page1 = pullChanges(db, 0, 3)
+    applyMutations(db, userId, full)
+    const page1 = pullChanges(db, userId, 0, 3)
     expect(page1.hasMore).toBe(true)
-    const page2 = pullChanges(db, page1.nextSeq, 3)
+    const page2 = pullChanges(db, userId, page1.nextSeq, 3)
     expect([...page1.changes, ...page2.changes].map(x => x.mutation.table)).toEqual([
       'series',
       'issue',
@@ -115,7 +116,7 @@ describe('per-table storage', () => {
 
   it('stores typed columns rather than a blob', () => {
     const db = openDb(':memory:')
-    applyMutations(db, full)
+    applyMutations(db, userId, full)
     const row = db.prepare('SELECT title, start_year FROM series').get()
     expect(row).toEqual({ title: 'Saga', start_year: 2012 })
   })
@@ -125,7 +126,7 @@ describe('per-table storage', () => {
     for (const table of tableNames) {
       const actual = (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[])
         .map(r => r.name)
-        .filter(n => !['id', 'created_at', 'updated_at', 'deleted_at', 'seq'].includes(n))
+        .filter(n => !['id', 'user_id', 'created_at', 'updated_at', 'deleted_at', 'seq'].includes(n))
         .sort()
       expect(COLUMNS[table].map(x => x.column).sort()).toEqual(actual)
     }
