@@ -114,12 +114,12 @@ describe('coverUrl scheme', () => {
 
   it.each(['javascript:alert(1)', 'data:text/html,<script>1</script>', 'ftp://x.example/a.jpg'])(
     'rejects %s',
-    async (url) => {
+    async url => {
       expect((await push([issue(url)])).status).toBe(400)
     },
   )
 
-  it.each(['https://example.com/c.jpg', 'http://example.com/c.jpg'])('accepts %s', async (url) => {
+  it.each(['https://example.com/c.jpg', 'http://example.com/c.jpg'])('accepts %s', async url => {
     expect((await push([issue(url)])).status).toBe(200)
   })
 })

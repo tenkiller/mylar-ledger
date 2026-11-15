@@ -41,7 +41,7 @@ describe('static serving', () => {
 
   it.each(['/assets/gone.js', '/favicon.ico', '/missing.css', '/sync/unknown'])(
     '404s %s instead of returning the shell',
-    async (path) => {
+    async path => {
       const res = await get(path)
       expect(res.status).toBe(404)
       expect(res.body).not.toContain('shell')

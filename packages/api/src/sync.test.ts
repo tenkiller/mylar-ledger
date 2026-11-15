@@ -74,7 +74,7 @@ describe('sync', () => {
     await push([series(id, 'v1', 100)])
     await push([series(id, 'v2', 200)])
     const out = await pull(1)
-    expect(out.changes.map((c) => c.seq)).toEqual([2])
+    expect(out.changes.map(c => c.seq)).toEqual([2])
   })
 
   it('propagates tombstones', async () => {
@@ -86,7 +86,7 @@ describe('sync', () => {
   })
 
   it('paginates pulls by limit and cursor', async () => {
-    await push([1, 2, 3].map((n) => series(uuidv7(), `S${n}`, n)))
+    await push([1, 2, 3].map(n => series(uuidv7(), `S${n}`, n)))
     const first = await pull(0, 2)
     expect(first).toMatchObject({ nextSeq: 2, hasMore: true })
     expect(first.changes).toHaveLength(2)

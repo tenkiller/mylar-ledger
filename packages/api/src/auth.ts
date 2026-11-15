@@ -104,7 +104,7 @@ export function createAuth({ db, passwordHash, now, clientIp }: AuthDeps): Auth 
     const nowMs = now()
     db.prepare('DELETE FROM login_failure WHERE at <= ?').run(toTimestamp(nowMs - GLOBAL_LIMIT.windowMs))
     const rows = (sql: string, ...args: string[]): string[] =>
-      (db.prepare(sql).all(...args) as { at: string }[]).map((r) => r.at)
+      (db.prepare(sql).all(...args) as { at: string }[]).map(r => r.at)
     const perIp = rows(
       'SELECT at FROM login_failure WHERE ip = ? AND at > ? ORDER BY at',
       ip,
@@ -129,11 +129,11 @@ export function createAuth({ db, passwordHash, now, clientIp }: AuthDeps): Auth 
     '/login',
     bodyLimit({
       maxSize: LOGIN_BODY_LIMIT_BYTES,
-      onError: (c) => c.json({ error: 'payload_too_large' }, 413),
+      onError: c => c.json({ error: 'payload_too_large' }, 413),
     }),
   )
 
-  routes.post('/login', async (c) => {
+  routes.post('/login', async c => {
     if (!c.req.header('content-type')?.toLowerCase().startsWith('application/json')) {
       return c.json({ error: 'unsupported_media_type' }, 415)
     }
@@ -170,14 +170,14 @@ export function createAuth({ db, passwordHash, now, clientIp }: AuthDeps): Auth 
     return c.json({ authenticated: true })
   })
 
-  routes.post('/logout', (c) => {
+  routes.post('/logout', c => {
     const token = getCookie(c, COOKIE, 'host')
     if (token !== undefined) db.prepare('DELETE FROM session WHERE id_hash = ?').run(sha256(token))
     deleteCookie(c, COOKIE, { prefix: 'host', secure: true, path: '/' })
     return c.json({ authenticated: false })
   })
 
-  routes.get('/session', requireAuth, (c) => c.json({ authenticated: true }))
+  routes.get('/session', requireAuth, c => c.json({ authenticated: true }))
 
   return { requireAuth, routes }
 }

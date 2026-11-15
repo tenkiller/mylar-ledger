@@ -31,7 +31,7 @@ function describeError(err: unknown): string {
 
 export function App() {
   const series = useLiveQuery(async () =>
-    (await db.series.orderBy('title').toArray()).filter((s) => s.deletedAt === undefined),
+    (await db.series.orderBy('title').toArray()).filter(s => s.deletedAt === undefined),
   )
   const pending = useLiveQuery(() => db.outbox.count())
   const [status, setStatus] = useState<Status>('idle')
@@ -120,13 +120,13 @@ export function App() {
         {pending ? `${pending} pending` : ''}
       </p>
       {status === 'auth' && (
-        <form onSubmit={(e) => void onLogin(e)}>
+        <form onSubmit={e => void onLogin(e)}>
           <input
             type="password"
             autocomplete="current-password"
             placeholder="Password"
             value={password}
-            onInput={(e) => {
+            onInput={e => {
               setPassword(e.currentTarget.value)
             }}
             required
@@ -139,11 +139,11 @@ export function App() {
           Sign out
         </button>
       )}
-      <form onSubmit={(e) => void onSubmit(e)}>
+      <form onSubmit={e => void onSubmit(e)}>
         <input
           placeholder="Series title"
           value={title}
-          onInput={(e) => {
+          onInput={e => {
             setTitle(e.currentTarget.value)
           }}
           required
@@ -151,14 +151,14 @@ export function App() {
         <input
           placeholder="Publisher"
           value={publisher}
-          onInput={(e) => {
+          onInput={e => {
             setPublisher(e.currentTarget.value)
           }}
         />
         <button type="submit">Add</button>
       </form>
       <ul>
-        {series?.map((s) => (
+        {series?.map(s => (
           <li key={s.id}>
             {s.title}
             {s.publisher ? ` (${s.publisher})` : ''}{' '}

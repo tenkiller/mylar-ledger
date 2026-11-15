@@ -95,8 +95,8 @@ describe('per-table storage', () => {
     const db = openDb(':memory:')
     expect(applyMutations(db, mutations).applied).toBe(4)
     const out = pullChanges(db, 0, 100)
-    expect(out.changes.map((x) => x.mutation)).toEqual(mutations)
-    expect(out.changes.map((x) => x.seq)).toEqual([1, 2, 3, 4])
+    expect(out.changes.map(x => x.mutation)).toEqual(mutations)
+    expect(out.changes.map(x => x.seq)).toEqual([1, 2, 3, 4])
   })
 
   it('keeps one global seq ordering across tables', () => {
@@ -105,7 +105,7 @@ describe('per-table storage', () => {
     const page1 = pullChanges(db, 0, 3)
     expect(page1.hasMore).toBe(true)
     const page2 = pullChanges(db, page1.nextSeq, 3)
-    expect([...page1.changes, ...page2.changes].map((x) => x.mutation.table)).toEqual([
+    expect([...page1.changes, ...page2.changes].map(x => x.mutation.table)).toEqual([
       'series',
       'issue',
       'copy',
@@ -124,10 +124,10 @@ describe('per-table storage', () => {
     const db = openDb(':memory:')
     for (const table of tableNames) {
       const actual = (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[])
-        .map((r) => r.name)
-        .filter((n) => !['id', 'created_at', 'updated_at', 'deleted_at', 'seq'].includes(n))
+        .map(r => r.name)
+        .filter(n => !['id', 'created_at', 'updated_at', 'deleted_at', 'seq'].includes(n))
         .sort()
-      expect(COLUMNS[table].map((x) => x.column).sort()).toEqual(actual)
+      expect(COLUMNS[table].map(x => x.column).sort()).toEqual(actual)
     }
   })
 })

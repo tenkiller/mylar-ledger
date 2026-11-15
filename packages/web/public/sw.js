@@ -8,17 +8,17 @@ self.addEventListener('install', () => {
   void self.skipWaiting()
 })
 
-self.addEventListener('activate', (event) => {
+self.addEventListener('activate', event => {
   // Bumping CACHE drops every older cache.
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim()),
   )
 })
 
-self.addEventListener('fetch', (event) => {
+self.addEventListener('fetch', event => {
   const req = event.request
   const url = new URL(req.url)
   if (req.method !== 'GET' || url.origin !== self.location.origin) return
@@ -33,10 +33,10 @@ async function handle(event) {
   // Unknown navigations (SPA deep links) fall back to the cached shell.
   const fallback = cached ?? (req.mode === 'navigate' ? await caches.match('/') : undefined)
 
-  const network = fetch(req).then((res) => {
+  const network = fetch(req).then(res => {
     if (res.ok) {
       const copy = res.clone()
-      event.waitUntil(caches.open(CACHE).then((c) => c.put(req, copy)))
+      event.waitUntil(caches.open(CACHE).then(c => c.put(req, copy)))
     }
     return res
   })
@@ -46,7 +46,7 @@ async function handle(event) {
   // Let a slow request finish in the background (it refreshes the cache) but do not make the
   // user wait on it.
   event.waitUntil(network.catch(() => undefined))
-  const timeout = new Promise((resolve) => {
+  const timeout = new Promise(resolve => {
     setTimeout(() => resolve(fallback), NETWORK_TIMEOUT_MS)
   })
   return Promise.race([network, timeout]).catch(() => fallback)

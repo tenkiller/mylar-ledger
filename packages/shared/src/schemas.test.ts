@@ -49,7 +49,7 @@ describe('calendar dates', () => {
   const copy = (purchaseDate: string) =>
     copySchema.safeParse({ id: uuidv7(), issueId: uuidv7(), purchaseDate, ...stamps }).success
 
-  it.each(['2012', '2012-03', '2012-03-01', '2024-02-29', '1938-06'])('coverDate accepts %s', (d) => {
+  it.each(['2012', '2012-03', '2012-03-01', '2024-02-29', '1938-06'])('coverDate accepts %s', d => {
     expect(issue(d)).toBe(true)
   })
 
@@ -66,7 +66,7 @@ describe('calendar dates', () => {
     '2012-03-1',
     'Spring 2012',
     '2012-03-01T00:00:00Z',
-  ])('coverDate rejects %s', (d) => {
+  ])('coverDate rejects %s', d => {
     expect(issue(d)).toBe(false)
   })
 

@@ -5,7 +5,7 @@ import { GLOBAL_LIMIT, IP_LIMIT, SESSION_MAX_AGE_MS, SESSION_TTL_MS } from './au
 import { openDb } from './db.ts'
 import { hashPassword, verifyPassword, type ScryptParams } from './password.ts'
 
-vi.mock('./password.ts', async (importOriginal) => {
+vi.mock('./password.ts', async importOriginal => {
   const actual = await importOriginal<typeof import('./password.ts')>()
   return { ...actual, verifyPassword: vi.fn(actual.verifyPassword) }
 })
@@ -46,7 +46,7 @@ const login = (password: string, headers: Record<string, string> = JSON_HEADERS)
   app.request('/auth/login', { method: 'POST', headers, body: JSON.stringify({ password }) })
 
 const sessionCookie = (res: Response): string | undefined =>
-  res.headers.getSetCookie().find((c) => c.startsWith('__Host-session='))
+  res.headers.getSetCookie().find(c => c.startsWith('__Host-session='))
 
 const cookieHeader = (setCookie: string): { cookie: string } => ({
   cookie: setCookie.split(';')[0] ?? '',
@@ -258,8 +258,8 @@ describe('rate limiting', () => {
     const slowHash = await hashPassword(PASSWORD, { N: 2 ** 14, r: 8, p: 1 })
     app = makeApp(slowHash)
     const results = await Promise.all([login(PASSWORD), login(PASSWORD), login(PASSWORD)])
-    expect(results.map((r) => r.status).sort()).toEqual([200, 200, 503])
-    const busy = results.find((r) => r.status === 503)
+    expect(results.map(r => r.status).sort()).toEqual([200, 200, 503])
+    const busy = results.find(r => r.status === 503)
     expect(busy?.headers.get('retry-after')).toBe('1')
   })
 })

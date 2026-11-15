@@ -110,11 +110,11 @@ async function push(db: MylarDb, fetchFn: FetchFn): Promise<number> {
       await fetchFn('/sync/push', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ mutations: batch.map((e) => e.mutation) }),
+        body: JSON.stringify({ mutations: batch.map(e => e.mutation) }),
       }),
     )
     pushResponseSchema.parse(await res.json())
-    await db.outbox.bulkDelete(batch.flatMap((e) => (e.id === undefined ? [] : [e.id])))
+    await db.outbox.bulkDelete(batch.flatMap(e => (e.id === undefined ? [] : [e.id])))
     total += batch.length
   }
 }
@@ -148,7 +148,7 @@ async function requeueEverything(db: MylarDb): Promise<void> {
     await db.outbox.clear()
     for (const name of tableNames) {
       const rows = await db.synced(name).toArray()
-      await db.outbox.bulkAdd(rows.map((record) => ({ mutation: mutationSchema.parse({ table: name, record }) })))
+      await db.outbox.bulkAdd(rows.map(record => ({ mutation: mutationSchema.parse({ table: name, record }) })))
     }
     await db.syncState.clear()
   })

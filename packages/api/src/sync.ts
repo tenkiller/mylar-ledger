@@ -100,13 +100,13 @@ function toRecord(row: Row, table: TableName): Row {
 }
 
 function upsertSql(table: TableName): string {
-  const cols = ['id', 'created_at', 'updated_at', 'deleted_at', 'seq', ...COLUMNS[table].map((x) => x.column)]
+  const cols = ['id', 'created_at', 'updated_at', 'deleted_at', 'seq', ...COLUMNS[table].map(x => x.column)]
   const placeholders = cols.map(() => '?').join(', ')
   // created_at is immutable once stored.
   const updates = cols
     .slice(1)
-    .filter((col) => col !== 'created_at')
-    .map((col) => `${col} = excluded.${col}`)
+    .filter(col => col !== 'created_at')
+    .map(col => `${col} = excluded.${col}`)
     .join(', ')
   return `INSERT INTO ${table} (${cols.join(', ')}) VALUES (${placeholders})
           ON CONFLICT (id) DO UPDATE SET ${updates}`
@@ -119,9 +119,9 @@ function upsertSql(table: TableName): string {
  */
 export function applyMutations(db: DatabaseSync, mutations: readonly Mutation[]): PushResponse {
   const find = Object.fromEntries(
-    tableNames.map((t) => [t, db.prepare(`SELECT updated_at, deleted_at FROM ${t} WHERE id = ?`)]),
+    tableNames.map(t => [t, db.prepare(`SELECT updated_at, deleted_at FROM ${t} WHERE id = ?`)]),
   ) as Record<TableName, ReturnType<DatabaseSync['prepare']>>
-  const upsert = Object.fromEntries(tableNames.map((t) => [t, db.prepare(upsertSql(t))])) as Record<
+  const upsert = Object.fromEntries(tableNames.map(t => [t, db.prepare(upsertSql(t))])) as Record<
     TableName,
     ReturnType<DatabaseSync['prepare']>
   >
@@ -159,9 +159,9 @@ export function applyMutations(db: DatabaseSync, mutations: readonly Mutation[])
 export function pullChanges(db: DatabaseSync, since: number, limit: number): PullResponse {
   // Each table's own top-`limit+1` is enough: the global top-`limit+1` is a subset of their union.
   const rows = tableNames
-    .flatMap((table) =>
+    .flatMap(table =>
       (db.prepare(`SELECT * FROM ${table} WHERE seq > ? ORDER BY seq LIMIT ?`).all(since, limit + 1) as Row[]).map(
-        (row) => ({ table, row }),
+        row => ({ table, row }),
       ),
     )
     .sort((a, b) => (a.row['seq'] as number) - (b.row['seq'] as number))

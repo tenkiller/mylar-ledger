@@ -41,8 +41,8 @@ describe('server process', () => {
     expect(res.status).toBe(200)
 
     const started = Date.now()
-    const exit = new Promise<number | null>((resolve) =>
-      child.once('exit', (code) => {
+    const exit = new Promise<number | null>(resolve =>
+      child.once('exit', code => {
         resolve(code)
       }),
     )
@@ -66,12 +66,12 @@ function start(extra: Record<string, string>): Running {
     stdio: ['ignore', 'pipe', 'pipe'],
   })
   let out = ''
-  const exit = new Promise<number | null>((resolve) => {
-    child.once('exit', (code) => {
+  const exit = new Promise<number | null>(resolve => {
+    child.once('exit', code => {
       resolve(code)
     })
   })
-  const port = new Promise<number>((resolve) => {
+  const port = new Promise<number>(resolve => {
     child.stdout.on('data', (chunk: Buffer) => {
       out += chunk.toString()
       const m = /listening on .*:(\d+)/.exec(out)

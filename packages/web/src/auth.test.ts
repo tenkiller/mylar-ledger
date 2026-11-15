@@ -60,7 +60,7 @@ describe('sign-in flow', () => {
     const other = browser()
     await login(PASSWORD, other)
     await syncOnce(b, other)
-    expect((await b.series.toArray()).map((s) => s.title).sort()).toEqual(['Also offline', 'Written offline'])
+    expect((await b.series.toArray()).map(s => s.title).sort()).toEqual(['Also offline', 'Written offline'])
   })
 
   it('requires signing in again after logout, without losing queued writes', async () => {
