@@ -1,6 +1,7 @@
 app = "mylar-ledger"
 primary_region = "dfw"
-# Litestream handles SIGTERM (graceful close). Give it a little longer than its 5s grace.
+# SIGTERM goes to Litestream, which stops the server (5s grace) and then does a final sync to
+# Tigris. A SIGKILL before that sync finishes leaves the latest writes only on the volume.
 kill_signal = "SIGTERM"
 kill_timeout = 30
 
