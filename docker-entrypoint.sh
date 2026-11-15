@@ -29,10 +29,13 @@ as_node() {
   setpriv --reuid=node --regid=node --init-groups -- "$@"
 }
 
-# Restore into a scratch file and rename it into place, so a failed or interrupted restore can
-# never leave a partial database at DB_PATH. A failure aborts the boot: starting on an empty or
-# stale database would let replication overwrite the good replica.
-if [ "$REPLICATION" = 1 ]; then
+# Restore only when there is no local database. Restore into a scratch file and rename it into
+# place, so a failed or interrupted restore can never leave a partial database at DB_PATH. A
+# failure aborts the boot: starting on an empty database would let replication overwrite the good
+# replica.
+if [ -f "$DB_PATH" ]; then
+  echo "Database exists, skipping restore."
+elif [ "$REPLICATION" = 1 ]; then
   RESTORED="$DB_PATH.restore"
   rm -f "$RESTORED" "$RESTORED-wal" "$RESTORED-shm"
   if ! as_node litestream restore -config "$CONFIG" -if-replica-exists -o "$RESTORED" "$DB_PATH"; then
@@ -41,33 +44,12 @@ if [ "$REPLICATION" = 1 ]; then
     exit 1
   fi
 
-  if [ ! -f "$RESTORED" ]; then
-    echo "No replica found."
+  if [ -f "$RESTORED" ]; then
+    echo "Restored from replica."
+    rm -f "$RESTORED-wal" "$RESTORED-shm"
+    mv "$RESTORED" "$DB_PATH"
   else
-    # seq only grows, so the higher one has seen more writes (e.g. a volume rebuilt from an old
-    # Fly snapshot is behind the replica).
-    LOCAL_SEQ=0
-    if [ -f "$DB_PATH" ]; then
-      LOCAL_SEQ="$(as_node node /app/packages/api/src/db-seq.ts "$DB_PATH")"
-    fi
-    REPLICA_SEQ="$(as_node node /app/packages/api/src/db-seq.ts "$RESTORED")"
-
-    if [ "$REPLICA_SEQ" -gt "$LOCAL_SEQ" ]; then
-      if [ -f "$DB_PATH" ]; then
-        BACKUP="$DB_PATH.stale-$(date -u +%Y%m%dT%H%M%SZ)"
-        echo "Replica (seq $REPLICA_SEQ) is ahead of local (seq $LOCAL_SEQ); keeping local as $BACKUP."
-        mv "$DB_PATH" "$BACKUP"
-        [ ! -f "$DB_PATH-wal" ] || mv "$DB_PATH-wal" "$BACKUP-wal"
-        [ ! -f "$DB_PATH-shm" ] || mv "$DB_PATH-shm" "$BACKUP-shm"
-      else
-        echo "Restoring from replica (seq $REPLICA_SEQ)."
-      fi
-      rm -f "$RESTORED-wal" "$RESTORED-shm"
-      mv "$RESTORED" "$DB_PATH"
-    else
-      echo "Local database (seq $LOCAL_SEQ) is current; discarding replica copy (seq $REPLICA_SEQ)."
-      rm -f "$RESTORED" "$RESTORED-wal" "$RESTORED-shm"
-    fi
+    echo "No replica found."
   fi
 fi
 
