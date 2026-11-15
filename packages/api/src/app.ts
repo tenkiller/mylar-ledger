@@ -11,6 +11,8 @@ export const DEFAULT_ALLOWED_HOSTS: readonly string[] = ['localhost', '127.0.0.1
 /** A device clock further ahead than this would freeze rows under last-write-wins. */
 export const MAX_CLOCK_AHEAD_MS = 5 * 60_000
 export const MAX_PUSH_BYTES = 4 * 1024 * 1024
+/** TODO(BRE-6 follow-up): replace with the signed-in user's id once sessions carry one. */
+export const SINGLE_USER_ID = 'single-user'
 
 /**
  * Required, with no default, so every caller must choose: there is no path to an unauthenticated
@@ -90,13 +92,13 @@ export function createApp(db: DatabaseSync, options: AppOptions): Hono {
     if (parsed.data.mutations.some(m => m.record.updatedAt > latest)) {
       return c.json({ error: 'timestamp_in_future' }, 400)
     }
-    return c.json(applyMutations(db, parsed.data.mutations))
+    return c.json(applyMutations(db, SINGLE_USER_ID, parsed.data.mutations))
   })
 
   app.get('/sync/pull', c => {
     const parsed = pullQuerySchema.safeParse(c.req.query())
     if (!parsed.success) return c.json({ error: 'invalid_request' }, 400)
-    return c.json(pullChanges(db, parsed.data.since, parsed.data.limit))
+    return c.json(pullChanges(db, SINGLE_USER_ID, parsed.data.since, parsed.data.limit))
   })
 
   if (options.webDist !== undefined) {

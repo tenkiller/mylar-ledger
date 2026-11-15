@@ -9,7 +9,7 @@ import {
   type PushResponse,
   type Series,
 } from '@mylar/shared'
-import { createApp } from './app.ts'
+import { createApp, SINGLE_USER_ID as userId } from './app.ts'
 import { openDb } from './db.ts'
 import { applyMutations, currentSeq } from './sync.ts'
 
@@ -201,10 +201,10 @@ describe('transactions', () => {
        BEGIN SELECT RAISE(ABORT, 'boom'); END`,
     )
     const batch = [series({ title: 'before' }), series({ title: 'boom' }), series({ title: 'after' })]
-    expect(() => applyMutations(db, batch)).toThrow('boom')
+    expect(() => applyMutations(db, userId, batch)).toThrow('boom')
 
     expect((await pull()).changes).toHaveLength(0)
-    expect(currentSeq(db)).toBe(0)
+    expect(currentSeq(db, userId)).toBe(0)
 
     // The failed attempt must not wedge the connection or burn sequence numbers.
     const ok = await push([series({ title: 'fine' })])

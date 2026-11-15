@@ -6,41 +6,92 @@ const MIGRATIONS: readonly string[] = [
   `CREATE TABLE server_meta (id INTEGER PRIMARY KEY CHECK (id = 1), instance_id TEXT NOT NULL);
    INSERT INTO server_meta (id, instance_id) VALUES (1, lower(hex(randomblob(16))));
 
-   CREATE TABLE seq_counter (id INTEGER PRIMARY KEY CHECK (id = 1), value INTEGER NOT NULL);
-   INSERT INTO seq_counter (id, value) VALUES (1, 0);
+   CREATE TABLE seq_counter (
+    user_id TEXT PRIMARY KEY,
+    value INTEGER NOT NULL
+  );
 
    CREATE TABLE series (
-     id TEXT PRIMARY KEY, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT, seq INTEGER NOT NULL,
-     title TEXT NOT NULL, publisher TEXT, start_year INTEGER, comicvine_id INTEGER
+     id TEXT NOT NULL,
+     user_id TEXT NOT NULL,
+     created_at TEXT NOT NULL,
+     updated_at TEXT NOT NULL,
+     deleted_at TEXT,
+     seq INTEGER NOT NULL,
+     title TEXT NOT NULL,
+     publisher TEXT,
+     start_year INTEGER,
+     comicvine_id INTEGER,
+     PRIMARY KEY (user_id, id)
    );
    CREATE TABLE issue (
-     id TEXT PRIMARY KEY, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT, seq INTEGER NOT NULL,
-     series_id TEXT NOT NULL, number TEXT NOT NULL, cover_date TEXT, variant TEXT, barcode TEXT,
-     cover_url TEXT, comicvine_id INTEGER, metadata_status TEXT NOT NULL
+     id TEXT NOT NULL,
+     user_id TEXT NOT NULL,
+     created_at TEXT NOT NULL,
+     updated_at TEXT NOT NULL,
+     deleted_at TEXT,
+     seq INTEGER NOT NULL,
+     series_id TEXT NOT NULL,
+     number TEXT NOT NULL,
+     cover_date TEXT,
+     variant TEXT,
+     barcode TEXT,
+     cover_url TEXT,
+     comicvine_id INTEGER,
+     metadata_status TEXT NOT NULL,
+     PRIMARY KEY (user_id, id)
    );
    CREATE TABLE copy (
-     id TEXT PRIMARY KEY, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT, seq INTEGER NOT NULL,
-     issue_id TEXT NOT NULL, condition_grade TEXT, numeric_grade REAL, graded_by TEXT, slab_cert TEXT,
-     purchase_price_cents INTEGER, purchase_date TEXT, location TEXT, notes TEXT
+     id TEXT NOT NULL,
+     user_id TEXT NOT NULL,
+     created_at TEXT NOT NULL,
+     updated_at TEXT NOT NULL,
+     deleted_at TEXT,
+     seq INTEGER NOT NULL,
+     issue_id TEXT NOT NULL,
+     condition_grade TEXT,
+     numeric_grade REAL,
+     graded_by TEXT,
+     slab_cert TEXT,
+     purchase_price_cents INTEGER,
+     purchase_date TEXT,
+     location TEXT,
+     notes TEXT,
+     PRIMARY KEY (user_id, id)
    );
    CREATE TABLE price_snapshot (
-     id TEXT PRIMARY KEY, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT, seq INTEGER NOT NULL,
-     issue_id TEXT NOT NULL, copy_id TEXT, grade TEXT, value_cents INTEGER NOT NULL,
-     source TEXT NOT NULL, observed_at TEXT NOT NULL, note TEXT
+     id TEXT NOT NULL,
+     user_id TEXT NOT NULL,
+     created_at TEXT NOT NULL,
+     updated_at TEXT NOT NULL,
+     deleted_at TEXT,
+     seq INTEGER NOT NULL,
+     issue_id TEXT NOT NULL,
+     copy_id TEXT,
+     grade TEXT,
+     value_cents INTEGER NOT NULL,
+     source TEXT NOT NULL,
+     observed_at TEXT NOT NULL,
+     note TEXT,
+     PRIMARY KEY (user_id, id)
    );
 
    CREATE TABLE session (
-     id_hash TEXT PRIMARY KEY, created_at TEXT NOT NULL, last_seen_at TEXT NOT NULL,
-     expires_at TEXT NOT NULL, password_fp TEXT NOT NULL
+     id_hash TEXT PRIMARY KEY,
+     created_at TEXT NOT NULL,
+     last_seen_at TEXT NOT NULL,
+     expires_at TEXT NOT NULL,
+     password_fp TEXT NOT NULL
    );
+
    CREATE TABLE login_failure (ip TEXT NOT NULL, at TEXT NOT NULL);
    CREATE INDEX login_failure_ip ON login_failure (ip, at);
    CREATE INDEX login_failure_at ON login_failure (at);
 
-   CREATE UNIQUE INDEX series_seq ON series (seq);
-   CREATE UNIQUE INDEX issue_seq ON issue (seq);
-   CREATE UNIQUE INDEX copy_seq ON copy (seq);
-   CREATE UNIQUE INDEX price_snapshot_seq ON price_snapshot (seq);
+   CREATE UNIQUE INDEX series_seq ON series (user_id, seq);
+   CREATE UNIQUE INDEX issue_seq ON issue (user_id, seq);
+   CREATE UNIQUE INDEX copy_seq ON copy (user_id, seq);
+   CREATE UNIQUE INDEX price_snapshot_seq ON price_snapshot (user_id, seq);
    CREATE INDEX issue_series ON issue (series_id);
    CREATE INDEX issue_barcode ON issue (barcode);
    CREATE INDEX copy_issue ON copy (issue_id);
